@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dashboard Penggunaan Makmal — Kolej Komuniti Jempol</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --blue:#1d4ed8;--blue-light:#dbeafe;--blue-mid:#3b82f6;
+    --red:#dc2626;--red-light:#fee2e2;
+    --green:#16a34a;--green-light:#dcfce7;
+    --yellow:#ca8a04;--yellow-light:#fef9c3;
+    --purple:#7c3aed;--purple-light:#ede9fe;
+    --orange:#ea580c;--orange-light:#ffedd5;
+    --gray:#374151;--gray-light:#f9fafb;--border:#e5e7eb;
+    --sidebar-w:240px;
+  }
+  body{font-family:-apple-system,"Segoe UI",sans-serif;font-size:14px;background:#f3f4f6;color:var(--gray);display:flex;min-height:100vh}
+
+  /* ── SIDEBAR ── */
+  .sidebar{width:var(--sidebar-w);background:#1e3a8a;color:#fff;display:flex;flex-direction:column;min-height:100vh;position:fixed;top:0;left:0;z-index:100}
+  .sidebar-header{padding:18px 16px;border-bottom:1px solid #1e40af;display:flex;align-items:center;gap:10px}
+  .sidebar-logo{width:36px;height:36px;background:#3b82f6;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+  .sidebar-title{line-height:1.3}
+  .sidebar-title strong{display:block;font-size:13px}
+  .sidebar-title small{font-size:10px;color:#93c5fd}
+  .nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;color:#bfdbfe;font-size:13px;font-weight:500;transition:background .15s}
+  .nav-item:hover{background:#1e40af;color:#fff}
+  .nav-item.active{background:#2563eb;color:#fff}
+  .nav-item .icon{font-size:16px;width:20px;text-align:center;flex-shrink:0}
+  .sidebar-footer{padding:12px 16px;border-top:1px solid #1e40af;font-size:10px;color:#60a5fa;text-align:center}
+
+  /* ── MAIN ── */
+  .main{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;min-height:100vh}
+  .topbar{background:#fff;border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+  .topbar-title{font-size:15px;font-weight:700;color:#111827}
+  .topbar-sub{font-size:11px;color:#6b7280;margin-top:1px}
+  .topbar-date{font-size:12px;color:#6b7280;background:#f3f4f6;padding:4px 10px;border-radius:20px}
+  .content{padding:24px;flex:1}
+
+  /* ── PAGES ── */
+  .page{display:none}
+  .page.active{display:block}
+
+  /* ── PAGE HEADER ── */
+  .page-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px}
+  .page-header h2{font-size:18px;font-weight:700;color:#111827}
+  .page-header p{font-size:12px;color:#6b7280;margin-top:2px}
+
+  /* ── BUTTONS ── */
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:background .15s}
+  .btn-primary{background:var(--blue-mid);color:#fff}.btn-primary:hover{background:#2563eb}
+  .btn-secondary{background:#fff;color:#374151;border:1px solid var(--border)}.btn-secondary:hover{background:#f9fafb}
+  .btn-danger{background:var(--red);color:#fff}.btn-danger:hover{background:#b91c1c}
+  .btn-sm{padding:5px 10px;font-size:12px}
+
+  /* ── KPI CARDS ── */
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px;margin-bottom:20px}
+  .kpi-card{background:#fff;border-radius:12px;border:1px solid var(--border);padding:18px;display:flex;align-items:center;gap:14px;transition:box-shadow .15s}
+  .kpi-card:hover{box-shadow:0 4px 12px rgba(0,0,0,.08)}
+  .kpi-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+  .kpi-val{font-size:24px;font-weight:700;color:#111827;line-height:1}
+  .kpi-label{font-size:12px;font-weight:600;color:#374151;margin-top:4px}
+  .kpi-sub{font-size:11px;color:#9ca3af;margin-top:2px}
+
+  /* ── CARDS ── */
+  .card{background:#fff;border-radius:12px;border:1px solid var(--border);overflow:hidden}
+  .card-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .card-header h3{font-size:13px;font-weight:600;color:#374151}
+  .card-body{padding:16px}
+  .card-link{font-size:12px;color:var(--blue-mid);text-decoration:none;cursor:pointer}
+  .card-link:hover{text-decoration:underline}
+
+  /* ── CHARTS GRID ── */
+  .charts-row{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:20px}
+  .charts-row-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+  .charts-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px}
+
+  /* ── TABLE ── */
+  .table-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse}
+  th{background:#f9fafb;padding:10px 14px;text-align:left;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
+  td{padding:10px 14px;font-size:13px;color:#374151;border-bottom:1px solid #f3f4f6}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:#f9fafb}
+
+  /* ── BADGES ── */
+  .badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600}
+  .badge-red{background:var(--red-light);color:var(--red)}
+  .badge-green{background:var(--green-light);color:var(--green)}
+  .badge-yellow{background:var(--yellow-light);color:var(--yellow)}
+  .badge-blue{background:var(--blue-light);color:var(--blue)}
+  .badge-purple{background:var(--purple-light);color:var(--purple)}
+  .badge-orange{background:var(--orange-light);color:var(--orange)}
+  .badge-gray{background:#f3f4f6;color:#6b7280}
+
+  /* ── MODAL ── */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:16px}
+  .modal-overlay.open{display:flex}
+  .modal{background:#fff;border-radius:14px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+  .modal-header{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .modal-header h3{font-size:15px;font-weight:600}
+  .modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:#9ca3af;line-height:1}.modal-close:hover{color:#374151}
+  .modal-body{padding:20px}
+  .modal-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+
+  /* ── FORM ── */
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .form-group{display:flex;flex-direction:column;gap:5px}
+  .form-group.full{grid-column:1/-1}
+  label{font-size:12px;font-weight:600;color:#374151}
+  input,select,textarea{border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;width:100%;outline:none;font-family:inherit}
+  input:focus,select:focus,textarea:focus{border-color:var(--blue-mid);box-shadow:0 0 0 3px #dbeafe}
+  textarea{resize:vertical;min-height:60px}
+
+  /* ── STAT MINI ── */
+  .stat-mini-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+  .stat-mini{background:#fff;border-radius:10px;border:1px solid var(--border);padding:14px;text-align:center}
+  .stat-mini .val{font-size:22px;font-weight:700;line-height:1}
+  .stat-mini .lbl{font-size:11px;color:#9ca3af;margin-top:4px}
+
+  /* ── FILTER BAR ── */
+  .filter-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+  .filter-bar select,.filter-bar input{width:auto;padding:6px 10px;font-size:13px}
+
+  /* ── MAKMAL CARDS ── */
+  .makmal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;margin-bottom:20px}
+  .makmal-card{background:#fff;border-radius:12px;border:1px solid var(--border);padding:18px;position:relative}
+  .makmal-card-top{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  .makmal-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;background:var(--blue-light)}
+  .makmal-name{font-size:14px;font-weight:700;color:#111827}
+  .makmal-code{font-size:11px;color:#9ca3af;margin-top:2px}
+  .makmal-detail{font-size:12px;color:#6b7280;margin-bottom:4px}
+  .makmal-actions{display:flex;gap:6px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+
+  /* ── LAPORAN RINGKASAN ── */
+  .laporan-stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+  .laporan-stat{background:#fff;border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center}
+  .laporan-stat .val{font-size:26px;font-weight:700;color:#111827;line-height:1}
+  .laporan-stat .lbl{font-size:11px;color:#9ca3af;margin-top:5px}
+
+  /* ── RESPONSIVE ── */
+  @media(max-width:768px){
+    .sidebar{transform:translateX(-100%);transition:transform .2s}
+    .sidebar.open{transform:translateX(0)}
+    .main{margin-left:0}
+    .charts-row,.charts-row-2,.charts-row-3,.form-grid{grid-template-columns:1fr}
+    .kpi-grid{grid-template-columns:1fr 1fr}
+    .stat-mini-row{grid-template-columns:1fr 1fr}
+    .makmal-grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════ SIDEBAR ══════════════ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">🏫</div>
+    <div class="sidebar-title">
+      <small>Penggunaan Makmal</small>
+      <strong>KK Jempol</strong>
+      <small>Kolej Komuniti Jempol</small>
+    </div>
+  </div>
+  <nav class="nav">
+    <div class="nav-item active" onclick="showPage('dashboard',this)"><span class="icon">🏠</span> Dashboard</div>
+    <div class="nav-item" onclick="showPage('sesi',this)"><span class="icon">📅</span> Jadual Penggunaan</div>
+    <div class="nav-item" onclick="showPage('laporan',this)"><span class="icon">📊</span> Laporan &amp; Statistik</div>
+    <div class="nav-item" onclick="showPage('makmal',this)"><span class="icon">🏫</span> Senarai Makmal</div>
+  </nav>
+  <div class="sidebar-footer">Sistem Pengurusan Makmal v1.0</div>
+</aside>
+
+<!-- ══════════════ MAIN ══════════════ -->
+<div class="main">
+  <header class="topbar">
+    <div>
+      <div class="topbar-title" id="topbar-title">Dashboard Penggunaan Makmal</div>
+      <div class="topbar-sub">Kolej Komuniti Jempol</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="btn btn-secondary btn-sm" id="menu-btn" style="display:none" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+      <div class="topbar-date" id="topbar-date"></div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ══ PAGE: DASHBOARD ══ -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div><h2>Dashboard</h2><p>Ringkasan keseluruhan penggunaan makmal, bengkel dan studio</p></div>
+        <select id="dash-filter-bulan" class="btn btn-secondary" style="padding:6px 10px" onchange="renderDashboard()">
+          <option value="all">Semua Masa</option>
+        </select>
+      </div>
+      <div class="kpi-grid" id="kpi-grid"></div>
+      <div class="charts-row">
+        <div class="card">
+          <div class="card-header"><h3>Bilangan Sesi per Makmal</h3></div>
+          <div class="card-body"><canvas id="chart-sesi-makmal" height="200"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>Status Sesi</h3></div>
+          <div class="card-body"><canvas id="chart-status" height="200"></canvas></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>5 Sesi Terkini</h3>
+          <span class="card-link" onclick="showPage('sesi',document.querySelectorAll('.nav-item')[1])">Lihat semua →</span>
+        </div>
+        <div class="table-wrap"><table id="dash-sesi-table"></table></div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: SESI ══ -->
+    <div class="page" id="page-sesi">
+      <div class="page-header">
+        <div><h2>Jadual Penggunaan Makmal</h2><p>Rekod semua sesi penggunaan makmal, bengkel dan studio</p></div>
+        <button class="btn btn-primary" onclick="openSesiModal()">＋ Tambah Sesi</button>
+      </div>
+      <div class="filter-bar">
+        <select id="filter-sesi-makmal" onchange="renderSesiTable()">
+          <option value="all">Semua Makmal</option>
+        </select>
+        <select id="filter-sesi-status" onchange="renderSesiTable()">
+          <option value="all">Semua Status</option>
+          <option value="dijadual">Dijadual</option>
+          <option value="selesai">Selesai</option>
+          <option value="dibatal">Dibatal</option>
+        </select>
+        <select id="filter-sesi-bulan" onchange="renderSesiTable()">
+          <option value="all">Semua Bulan</option>
+        </select>
+        <input type="text" id="filter-sesi-cari" placeholder="🔍 Cari kursus / pensyarah..." style="min-width:200px" oninput="renderSesiTable()" />
+      </div>
+      <div class="card"><div class="table-wrap"><table id="sesi-table"></table></div></div>
+    </div>
+
+    <!-- ══ PAGE: LAPORAN ══ -->
+    <div class="page" id="page-laporan">
+      <div class="page-header">
+        <div><h2>Laporan &amp; Statistik</h2><p>Analisis kadar penggunaan, waktu puncak dan trend bulanan</p></div>
+        <button class="btn btn-primary" onclick="window.print()">🖨️ Cetak Laporan</button>
+      </div>
+      <div class="laporan-stat-row" id="laporan-stats"></div>
+      <div class="charts-row">
+        <div class="card">
+          <div class="card-header"><h3>Trend Bilangan Sesi Mengikut Bulan</h3></div>
+          <div class="card-body"><canvas id="chart-trend" height="200"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>Jumlah Jam Guna per Makmal</h3></div>
+          <div class="card-body"><canvas id="chart-jam-makmal" height="200"></canvas></div>
+        </div>
+      </div>
+      <div class="charts-row-2">
+        <div class="card">
+          <div class="card-header"><h3>Waktu Puncak (Hari dalam Seminggu)</h3></div>
+          <div class="card-body"><canvas id="chart-hari" height="220"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>Pecahan Penggunaan Mengikut Kursus</h3></div>
+          <div class="card-body"><canvas id="chart-kursus" height="220"></canvas></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>Kadar Penggunaan per Makmal</h3></div>
+        <div class="card-body">
+          <div class="table-wrap"><table id="laporan-kadar-table"></table></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: MAKMAL ══ -->
+    <div class="page" id="page-makmal">
+      <div class="page-header">
+        <div><h2>Senarai Makmal</h2><p>Urus makmal, bengkel dan studio di Kolej Komuniti Jempol</p></div>
+        <button class="btn btn-primary" onclick="openMakmalModal()">＋ Tambah Makmal</button>
+      </div>
+      <div class="makmal-grid" id="makmal-grid"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════ MODAL SESI ══════════════ -->
+<div class="modal-overlay" id="modal-sesi">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-sesi-title">Tambah Sesi Penggunaan</h3>
+      <button class="modal-close" onclick="closeModal('modal-sesi')">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-sesi" onsubmit="saveSesi(event)">
+        <input type="hidden" id="sesi-id" />
+        <div class="form-grid">
+          <div class="form-group"><label>No. Sesi</label><input id="s-no" placeholder="SES/2026/001" required /></div>
+          <div class="form-group"><label>Makmal / Lokasi</label>
+            <select id="s-makmal" required></select>
+          </div>
+          <div class="form-group"><label>Tarikh</label><input type="date" id="s-tarikh" required /></div>
+          <div class="form-group"><label>Masa Mula</label><input type="time" id="s-mula" required /></div>
+          <div class="form-group"><label>Masa Tamat</label><input type="time" id="s-tamat" required /></div>
+          <div class="form-group"><label>Jumlah Jam <span style="color:#9ca3af;font-weight:400">(auto-kira)</span></label>
+            <input id="s-jam" type="number" step="0.5" min="0.5" placeholder="2.0" readonly style="background:#f9fafb" /></div>
+          <div class="form-group full"><label>Pensyarah / Pengguna</label><input id="s-pensyarah" placeholder="Nama pensyarah" required /></div>
+          <div class="form-group full"><label>Mata Pelajaran / Kursus</label><input id="s-kursus" placeholder="Nama kursus / mata pelajaran" required /></div>
+          <div class="form-group"><label>Bilangan Pelajar</label><input type="number" id="s-pelajar" min="0" placeholder="30" /></div>
+          <div class="form-group"><label>Status</label>
+            <select id="s-status">
+              <option value="dijadual">Dijadual</option>
+              <option value="selesai">Selesai</option>
+              <option value="dibatal">Dibatal</option>
+            </select>
+          </div>
+          <div class="form-group full"><label>Catatan</label><textarea id="s-catatan" placeholder="Catatan tambahan (jika ada)..."></textarea></div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-sesi')">Batal</button>
+      <button class="btn btn-primary" onclick="document.getElementById('form-sesi').requestSubmit()">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ MODAL MAKMAL ══════════════ -->
+<div class="modal-overlay" id="modal-makmal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-makmal-title">Tambah Makmal</h3>
+      <button class="modal-close" onclick="closeModal('modal-makmal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-makmal" onsubmit="saveMakmal(event)">
+        <input type="hidden" id="makmal-id" />
+        <div class="form-grid">
+          <div class="form-group"><label>Kod Makmal</label><input id="m-kod" placeholder="MKL-IT-01" required /></div>
+          <div class="form-group"><label>Jenis</label>
+            <select id="m-jenis">
+              <option value="Makmal Komputer">🖥️ Makmal Komputer</option>
+              <option value="Bengkel">🔧 Bengkel</option>
+              <option value="Studio">🎨 Studio</option>
+              <option value="Makmal Sains">🔬 Makmal Sains</option>
+              <option value="Lain-lain">📦 Lain-lain</option>
+            </select>
+          </div>
+          <div class="form-group full"><label>Nama Makmal</label><input id="m-nama" placeholder="Makmal Komputer 1" required /></div>
+          <div class="form-group"><label>Kapasiti (orang)</label><input type="number" id="m-kapasiti" min="1" placeholder="30" /></div>
+          <div class="form-group"><label>Lokasi / Blok</label><input id="m-lokasi" placeholder="Blok A" /></div>
+          <div class="form-group"><label>Status</label>
+            <select id="m-status">
+              <option value="Aktif">Aktif</option>
+              <option value="Tidak Aktif">Tidak Aktif</option>
+            </select>
+          </div>
+          <div class="form-group full"><label>Catatan</label><textarea id="m-catatan" placeholder="Penerangan tambahan..."></textarea></div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-makmal')">Batal</button>
+      <button class="btn btn-primary" onclick="document.getElementById('form-makmal').requestSubmit()">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ MODAL DETAIL SESI ══════════════ -->
+<div class="modal-overlay" id="modal-sesi-detail">
+  <div class="modal">
+    <div class="modal-header"><h3>Detail Sesi</h3><button class="modal-close" onclick="closeModal('modal-sesi-detail')">✕</button></div>
+    <div class="modal-body" id="sesi-detail-body"></div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-sesi-detail')">Tutup</button></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════
+//  DATA STORE + localStorage
+// ══════════════════════════════════════
+function load(key, def){ try{ const v=localStorage.getItem(key); return v?JSON.parse(v):def }catch(e){return def} }
+function save(key, val){ localStorage.setItem(key, JSON.stringify(val)) }
+
+let makmals = load('kkj_makmals', [
+  {id:1,kod:'MKL-IT-01',nama:'Makmal Komputer 1',jenis:'Makmal Komputer',kapasiti:30,lokasi:'Blok A',status:'Aktif',catatan:''},
+  {id:2,kod:'MKL-IT-02',nama:'Makmal Komputer 2',jenis:'Makmal Komputer',kapasiti:30,lokasi:'Blok A',status:'Aktif',catatan:''},
+  {id:3,kod:'BKL-MK-01',nama:'Bengkel Mekanikal',jenis:'Bengkel',kapasiti:25,lokasi:'Blok B',status:'Aktif',catatan:''},
+  {id:4,kod:'STD-SD-01',nama:'Studio Seni & Reka Bentuk',jenis:'Studio',kapasiti:20,lokasi:'Blok C',status:'Aktif',catatan:''},
+  {id:5,kod:'MKL-SC-01',nama:'Makmal Sains',jenis:'Makmal Sains',kapasiti:28,lokasi:'Blok B',status:'Aktif',catatan:''},
+  {id:6,kod:'BKL-EL-01',nama:'Bengkel Elektrik',jenis:'Bengkel',kapasiti:24,lokasi:'Blok B',status:'Aktif',catatan:''},
+])
+
+let sesis = load('kkj_sesis', [
+  {id:1,no:'SES/2026/001',makmal_id:1,tarikh:'2026-11-01',mula:'08:00',tamat:'10:00',jam:2,pensyarah:'Ahmad Fadzillah bin Hassan',kursus:'Pengaturcaraan Web',pelajar:28,status:'selesai',catatan:''},
+  {id:2,no:'SES/2026/002',makmal_id:2,tarikh:'2026-11-03',mula:'10:00',tamat:'12:00',jam:2,pensyarah:'Siti Norzahira binti Mohd Zain',kursus:'Asas Komputer',pelajar:30,status:'selesai',catatan:''},
+  {id:3,no:'SES/2026/003',makmal_id:3,tarikh:'2026-11-05',mula:'14:00',tamat:'16:00',jam:2,pensyarah:'Mohd Hafizi bin Abd Razak',kursus:'Teknologi Kimpalan',pelajar:22,status:'selesai',catatan:''},
+  {id:4,no:'SES/2026/004',makmal_id:1,tarikh:'2026-11-10',mula:'08:00',tamat:'10:00',jam:2,pensyarah:'Noraini binti Ismail',kursus:'Multimedia Interaktif',pelajar:25,status:'selesai',catatan:''},
+  {id:5,no:'SES/2026/005',makmal_id:4,tarikh:'2026-11-12',mula:'10:00',tamat:'13:00',jam:3,pensyarah:'Ahmad Fadzillah bin Hassan',kursus:'Reka Bentuk Grafik',pelajar:18,status:'selesai',catatan:''},
+  {id:6,no:'SES/2026/006',makmal_id:5,tarikh:'2026-11-14',mula:'08:00',tamat:'10:00',jam:2,pensyarah:'Zulaikha binti Ramli',kursus:'Kimia Asas',pelajar:26,status:'selesai',catatan:''},
+  {id:7,no:'SES/2026/007',makmal_id:2,tarikh:'2026-11-17',mula:'14:00',tamat:'16:00',jam:2,pensyarah:'Siti Norzahira binti Mohd Zain',kursus:'Asas Komputer',pelajar:29,status:'selesai',catatan:''},
+  {id:8,no:'SES/2026/008',makmal_id:1,tarikh:'2026-11-20',mula:'08:00',tamat:'10:00',jam:2,pensyarah:'Ahmad Fadzillah bin Hassan',kursus:'Pengaturcaraan Web',pelajar:27,status:'dijadual',catatan:''},
+  {id:9,no:'SES/2026/009',makmal_id:6,tarikh:'2026-11-20',mula:'10:00',tamat:'12:00',jam:2,pensyarah:'Mohd Hafizi bin Abd Razak',kursus:'Pendawaian Asas',pelajar:20,status:'dijadual',catatan:''},
+  {id:10,no:'SES/2026/010',makmal_id:3,tarikh:'2026-11-21',mula:'14:00',tamat:'17:00',jam:3,pensyarah:'Faizal bin Othman',kursus:'Teknologi Kimpalan',pelajar:21,status:'dijadual',catatan:''},
+])
+
+let chartInstances = {}
+
+// ══════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════
+function uid(){ return Date.now() + Math.floor(Math.random()*1000) }
+
+function getMakmal(id){ return makmals.find(m=>m.id===id)||{nama:'—',kod:'—',jenis:'—'} }
+
+function statusBadge(s){
+  const cls={selesai:'badge-green',dijadual:'badge-blue',dibatal:'badge-red',Aktif:'badge-green','Tidak Aktif':'badge-gray'}
+  const lbl={selesai:'Selesai',dijadual:'Dijadual',dibatal:'Dibatal',Aktif:'Aktif','Tidak Aktif':'Tidak Aktif'}
+  return `<span class="badge ${cls[s]||'badge-gray'}">${lbl[s]||s}</span>`
+}
+
+function jenisBadge(j){
+  const cls={'Makmal Komputer':'badge-blue','Bengkel':'badge-orange','Studio':'badge-purple','Makmal Sains':'badge-green','Lain-lain':'badge-gray'}
+  return `<span class="badge ${cls[j]||'badge-gray'}">${j}</span>`
+}
+
+function makmalIcon(j){
+  const ic={'Makmal Komputer':'🖥️','Bengkel':'🔧','Studio':'🎨','Makmal Sains':'🔬','Lain-lain':'📦'}
+  return ic[j]||'🏫'
+}
+
+function destroyChart(id){ if(chartInstances[id]){chartInstances[id].destroy();delete chartInstances[id]} }
+
+function mkTh(cols){ return '<thead><tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr></thead>' }
+
+function hitungJam(mula,tamat){
+  if(!mula||!tamat) return 0
+  const [h1,m1]=mula.split(':').map(Number)
+  const [h2,m2]=tamat.split(':').map(Number)
+  const minit = (h2*60+m2)-(h1*60+m1)
+  return minit>0 ? Math.round(minit/60*10)/10 : 0
+}
+
+function bulanLabel(ym){ // 'YYYY-MM' -> 'Jan 2026'
+  const bln=['Jan','Feb','Mac','Apr','Mei','Jun','Jul','Ogs','Sep','Okt','Nov','Dis']
+  const [y,m]=ym.split('-')
+  return `${bln[parseInt(m)-1]} ${y}`
+}
+
+function hariLabel(d){ // date string -> hari
+  const hari=['Ahad','Isnin','Selasa','Rabu','Khamis','Jumaat','Sabtu']
+  return hari[new Date(d).getDay()]
+}
+
+function populateBulanFilter(selectId){
+  const ymSet = [...new Set(sesis.map(s=>s.tarikh.substring(0,7)))].sort().reverse()
+  const sel = document.getElementById(selectId)
+  const cur = sel.value
+  sel.innerHTML = '<option value="all">Semua Bulan</option>'
+    + ymSet.map(ym=>`<option value="${ym}" ${ym===cur?'selected':''}>${bulanLabel(ym)}</option>`).join('')
+}
+
+function populateMakmalFilter(selectId, includeAll=true){
+  const sel = document.getElementById(selectId)
+  const cur = sel ? sel.value : 'all'
+  if(sel){
+    sel.innerHTML = (includeAll?'<option value="all">Semua Makmal</option>':'')
+      + makmals.map(m=>`<option value="${m.id}" ${String(m.id)===String(cur)?'selected':''}>${m.nama}</option>`).join('')
+  }
+}
+
+// ══════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════
+const pageTitles = {
+  'dashboard':'Dashboard Penggunaan Makmal',
+  'sesi':'Jadual Penggunaan Makmal',
+  'laporan':'Laporan & Statistik',
+  'makmal':'Senarai Makmal'
+}
+
+function showPage(id, el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'))
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'))
+  document.getElementById('page-'+id).classList.add('active')
+  if(el) el.classList.add('active')
+  document.getElementById('topbar-title').textContent = pageTitles[id]||id
+  document.getElementById('sidebar').classList.remove('open')
+  if(id==='dashboard') renderDashboard()
+  if(id==='sesi') renderSesiTable()
+  if(id==='laporan') renderLaporan()
+  if(id==='makmal') renderMakmalGrid()
+}
+
+// ══════════════════════════════════════
+//  MODALS
+// ══════════════════════════════════════
+function openModal(id){ document.getElementById(id).classList.add('open') }
+function closeModal(id){ document.getElementById(id).classList.remove('open') }
+document.querySelectorAll('.modal-overlay').forEach(m=>{
+  m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open') })
+})
+
+// ══════════════════════════════════════
+//  DASHBOARD
+// ══════════════════════════════════════
+function renderDashboard(){
+  populateBulanFilter('dash-filter-bulan')
+  const bulan = document.getElementById('dash-filter-bulan').value
+  const data = bulan==='all' ? sesis : sesis.filter(s=>s.tarikh.startsWith(bulan))
+  const aktif = data.filter(s=>s.status!=='dibatal')
+
+  // KPI
+  const totalSesi = aktif.length
+  const totalJam = aktif.reduce((a,s)=>a+(+s.jam||0),0)
+  const makmalCount = {}
+  aktif.forEach(s=>{ makmalCount[s.makmal_id]=(makmalCount[s.makmal_id]||0)+1 })
+  const topMakmalId = Object.entries(makmalCount).sort((a,b)=>b[1]-a[1])[0]
+  const topMakmal = topMakmalId ? getMakmal(+topMakmalId[0]).nama : '—'
+  const pensyarahSet = new Set(aktif.map(s=>s.pensyarah))
+
+  document.getElementById('kpi-grid').innerHTML = [
+    {icon:'📅',bg:'#dbeafe',val:totalSesi,label:'Jumlah Sesi',sub: bulan==='all'?'Keseluruhan':bulanLabel(bulan)},
+    {icon:'⏱️',bg:'#dcfce7',val:totalJam+'j',label:'Jumlah Jam Guna',sub:'Semua makmal'},
+    {icon:'🏆',bg:'#fef9c3',val:topMakmal==='—'?'—':topMakmal.split(' ').slice(0,2).join(' '),label:'Makmal Paling Aktif',sub:`${topMakmalId?topMakmalId[1]:0} sesi`},
+    {icon:'👤',bg:'#ede9fe',val:pensyarahSet.size,label:'Pensyarah Aktif',sub:'Pengguna unik'},
+  ].map(k=>`
+    <div class="kpi-card">
+      <div class="kpi-icon" style="background:${k.bg}">${k.icon}</div>
+      <div>
+        <div class="kpi-val">${k.val}</div>
+        <div class="kpi-label">${k.label}</div>
+        <div class="kpi-sub">${k.sub}</div>
+      </div>
+    </div>`).join('')
+
+  // Chart: sesi per makmal
+  destroyChart('chart-sesi-makmal')
+  const makmalNames = makmals.map(m=>m.nama.length>20?m.nama.substring(0,20)+'…':m.nama)
+  const makmalSesiCount = makmals.map(m=>aktif.filter(s=>s.makmal_id===m.id).length)
+  chartInstances['chart-sesi-makmal'] = new Chart(document.getElementById('chart-sesi-makmal'),{
+    type:'bar',
+    data:{
+      labels:makmalNames,
+      datasets:[{label:'Bilangan Sesi',data:makmalSesiCount,backgroundColor:'#3b82f6',borderRadius:5}]
+    },
+    options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}
+  })
+
+  // Chart: status pie
+  destroyChart('chart-status')
+  const cSelesai=data.filter(s=>s.status==='selesai').length
+  const cDijadual=data.filter(s=>s.status==='dijadual').length
+  const cDibatal=data.filter(s=>s.status==='dibatal').length
+  chartInstances['chart-status'] = new Chart(document.getElementById('chart-status'),{
+    type:'doughnut',
+    data:{
+      labels:['Selesai','Dijadual','Dibatal'],
+      datasets:[{data:[cSelesai,cDijadual,cDibatal],backgroundColor:['#22c55e','#3b82f6','#ef4444'],borderWidth:2}]
+    },
+    options:{responsive:true,plugins:{legend:{position:'bottom'}}}
+  })
+
+  // Table: 5 terkini
+  const recent = [...sesis].sort((a,b)=>b.tarikh.localeCompare(a.tarikh)||b.mula.localeCompare(a.mula)).slice(0,5)
+  const tbl = document.getElementById('dash-sesi-table')
+  tbl.innerHTML = mkTh(['No. Sesi','Makmal','Tarikh','Masa','Pensyarah','Kursus','Status'])
+    +'<tbody>'
+    +recent.map(s=>`<tr>
+      <td style="font-family:monospace;font-size:12px;color:var(--blue-mid)">${s.no}</td>
+      <td style="font-size:12px">${getMakmal(s.makmal_id).nama}</td>
+      <td style="white-space:nowrap">${s.tarikh}</td>
+      <td style="white-space:nowrap;font-size:12px">${s.mula}–${s.tamat}</td>
+      <td style="font-size:12px">${s.pensyarah}</td>
+      <td>${s.kursus}</td>
+      <td>${statusBadge(s.status)}</td>
+    </tr>`).join('')
+    +'</tbody>'
+}
+
+// ══════════════════════════════════════
+//  JADUAL SESI
+// ══════════════════════════════════════
+function renderSesiTable(){
+  populateBulanFilter('filter-sesi-bulan')
+  populateMakmalFilter('filter-sesi-makmal')
+  const fMakmal = document.getElementById('filter-sesi-makmal').value
+  const fStatus = document.getElementById('filter-sesi-status').value
+  const fBulan  = document.getElementById('filter-sesi-bulan').value
+  const fCari   = document.getElementById('filter-sesi-cari').value.toLowerCase()
+
+  let data = [...sesis].sort((a,b)=>b.tarikh.localeCompare(a.tarikh)||b.mula.localeCompare(a.mula))
+  if(fMakmal!=='all') data=data.filter(s=>String(s.makmal_id)===fMakmal)
+  if(fStatus!=='all') data=data.filter(s=>s.status===fStatus)
+  if(fBulan!=='all')  data=data.filter(s=>s.tarikh.startsWith(fBulan))
+  if(fCari) data=data.filter(s=>s.kursus.toLowerCase().includes(fCari)||s.pensyarah.toLowerCase().includes(fCari))
+
+  const tbl = document.getElementById('sesi-table')
+  tbl.innerHTML = mkTh(['No. Sesi','Makmal','Tarikh','Masa','Jam','Pensyarah','Kursus','Pelajar','Status',''])
+    +'<tbody>'
+    +(data.length===0?'<tr><td colspan="10" style="text-align:center;color:#9ca3af;padding:24px">Tiada rekod ditemui</td></tr>':'')
+    +data.map(s=>`<tr>
+      <td style="font-family:monospace;font-size:12px;color:var(--blue-mid);white-space:nowrap">${s.no}</td>
+      <td style="font-size:12px">${getMakmal(s.makmal_id).nama}</td>
+      <td style="white-space:nowrap">${s.tarikh}</td>
+      <td style="white-space:nowrap;font-size:12px">${s.mula}–${s.tamat}</td>
+      <td style="text-align:center;font-weight:600">${s.jam}j</td>
+      <td style="font-size:12px">${s.pensyarah}</td>
+      <td style="font-weight:500">${s.kursus}</td>
+      <td style="text-align:center">${s.pelajar||'—'}</td>
+      <td>${statusBadge(s.status)}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-secondary btn-sm" title="Detail" onclick="viewSesi(${s.id})">👁️</button>
+        <button class="btn btn-secondary btn-sm" title="Edit" onclick="editSesi(${s.id})">✏️</button>
+        <button class="btn btn-danger btn-sm" title="Padam" onclick="deleteSesi(${s.id})">🗑️</button>
+      </td>
+    </tr>`).join('')
+    +'</tbody>'
+}
+
+function openSesiModal(id){
+  populateMakmalFilter('s-makmal', false)
+  if(!id){
+    document.getElementById('modal-sesi-title').textContent='Tambah Sesi Penggunaan'
+    document.getElementById('sesi-id').value=''
+    document.getElementById('form-sesi').reset()
+    // auto-generate no sesi
+    const nxt = sesis.length+1
+    document.getElementById('s-no').value=`SES/2026/${String(nxt).padStart(3,'0')}`
+    document.getElementById('s-tarikh').value=new Date().toISOString().split('T')[0]
+  }
+  openModal('modal-sesi')
+}
+
+function editSesi(id){
+  const s = sesis.find(x=>x.id===id)
+  if(!s) return
+  populateMakmalFilter('s-makmal', false)
+  document.getElementById('modal-sesi-title').textContent='Kemaskini Sesi'
+  document.getElementById('sesi-id').value=s.id
+  document.getElementById('s-no').value=s.no
+  document.getElementById('s-makmal').value=s.makmal_id
+  document.getElementById('s-tarikh').value=s.tarikh
+  document.getElementById('s-mula').value=s.mula
+  document.getElementById('s-tamat').value=s.tamat
+  document.getElementById('s-jam').value=s.jam
+  document.getElementById('s-pensyarah').value=s.pensyarah
+  document.getElementById('s-kursus').value=s.kursus
+  document.getElementById('s-pelajar').value=s.pelajar||''
+  document.getElementById('s-status').value=s.status
+  document.getElementById('s-catatan').value=s.catatan||''
+  openModal('modal-sesi')
+}
+
+function viewSesi(id){
+  const s = sesis.find(x=>x.id===id)
+  if(!s) return
+  const m = getMakmal(s.makmal_id)
+  document.getElementById('sesi-detail-body').innerHTML = `
+    <div style="display:grid;gap:10px">
+      ${[
+        ['No. Sesi', `<span style="font-family:monospace;color:var(--blue-mid)">${s.no}</span>`],
+        ['Makmal', m.nama],
+        ['Jenis Makmal', jenisBadge(m.jenis)],
+        ['Tarikh', s.tarikh],
+        ['Masa', `${s.mula} — ${s.tamat} (${s.jam} jam)`],
+        ['Pensyarah / Pengguna', s.pensyarah],
+        ['Mata Pelajaran / Kursus', `<strong>${s.kursus}</strong>`],
+        ['Bilangan Pelajar', s.pelajar||'—'],
+        ['Status', statusBadge(s.status)],
+        ['Catatan', s.catatan||'<span style="color:#9ca3af">Tiada catatan</span>'],
+      ].map(([lbl,val])=>`
+        <div style="display:grid;grid-template-columns:150px 1fr;gap:8px;padding:8px 0;border-bottom:1px solid #f3f4f6;font-size:13px">
+          <span style="color:#9ca3af;font-weight:500">${lbl}</span>
+          <span>${val}</span>
+        </div>`).join('')}
+    </div>`
+  openModal('modal-sesi-detail')
+}
+
+function saveSesi(e){
+  e.preventDefault()
+  const mula=document.getElementById('s-mula').value
+  const tamat=document.getElementById('s-tamat').value
+  const jam = hitungJam(mula,tamat)
+  const id = document.getElementById('sesi-id').value
+  const obj = {
+    no: document.getElementById('s-no').value.trim(),
+    makmal_id: +document.getElementById('s-makmal').value,
+    tarikh: document.getElementById('s-tarikh').value,
+    mula, tamat, jam,
+    pensyarah: document.getElementById('s-pensyarah').value.trim(),
+    kursus: document.getElementById('s-kursus').value.trim(),
+    pelajar: +document.getElementById('s-pelajar').value||0,
+    status: document.getElementById('s-status').value,
+    catatan: document.getElementById('s-catatan').value.trim(),
+  }
+  if(id){ const i=sesis.findIndex(x=>x.id===+id); if(i>-1){sesis[i]={...sesis[i],...obj}} }
+  else { sesis.push({id:uid(),...obj}) }
+  save('kkj_sesis',sesis)
+  closeModal('modal-sesi')
+  renderSesiTable()
+}
+
+function deleteSesi(id){
+  if(!confirm('Padam rekod sesi ini?')) return
+  sesis=sesis.filter(s=>s.id!==id)
+  save('kkj_sesis',sesis)
+  renderSesiTable()
+}
+
+// auto-kira jam apabila masa berubah
+document.getElementById('s-mula').addEventListener('change', autoKiraJam)
+document.getElementById('s-tamat').addEventListener('change', autoKiraJam)
+function autoKiraJam(){
+  const j=hitungJam(document.getElementById('s-mula').value, document.getElementById('s-tamat').value)
+  document.getElementById('s-jam').value=j||''
+}
+
+// ══════════════════════════════════════
+//  LAPORAN
+// ══════════════════════════════════════
+function renderLaporan(){
+  const aktif = sesis.filter(s=>s.status!=='dibatal')
+
+  // Stats row
+  const totalSesi = aktif.length
+  const totalJam = aktif.reduce((a,s)=>a+(+s.jam||0),0)
+  const totalPelajar = aktif.reduce((a,s)=>a+(+s.pelajar||0),0)
+  const avgJamPerSesi = totalSesi>0 ? Math.round(totalJam/totalSesi*10)/10 : 0
+  document.getElementById('laporan-stats').innerHTML = [
+    {val:totalSesi, lbl:'Jumlah Sesi (Keseluruhan)'},
+    {val:totalJam+'j', lbl:'Jumlah Jam Keseluruhan'},
+    {val:totalPelajar, lbl:'Jumlah Pelajar Terlibat'},
+    {val:avgJamPerSesi+'j', lbl:'Purata Jam / Sesi'},
+  ].map(s=>`<div class="laporan-stat"><div class="val">${s.val}</div><div class="lbl">${s.lbl}</div></div>`).join('')
+
+  // Chart: Trend bulanan
+  destroyChart('chart-trend')
+  const ymAll = [...new Set(sesis.map(s=>s.tarikh.substring(0,7)))].sort()
+  const trendData = ymAll.map(ym=>aktif.filter(s=>s.tarikh.startsWith(ym)).length)
+  chartInstances['chart-trend'] = new Chart(document.getElementById('chart-trend'),{
+    type:'line',
+    data:{
+      labels:ymAll.map(bulanLabel),
+      datasets:[{label:'Bilangan Sesi',data:trendData,borderColor:'#3b82f6',backgroundColor:'#dbeafe',fill:true,tension:0.3,pointRadius:4}]
+    },
+    options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}
+  })
+
+  // Chart: Jam per makmal
+  destroyChart('chart-jam-makmal')
+  const jamPerMakmal = makmals.map(m=>aktif.filter(s=>s.makmal_id===m.id).reduce((a,s)=>a+(+s.jam||0),0))
+  chartInstances['chart-jam-makmal'] = new Chart(document.getElementById('chart-jam-makmal'),{
+    type:'bar',
+    data:{
+      labels:makmals.map(m=>m.nama.length>18?m.nama.substring(0,18)+'…':m.nama),
+      datasets:[{label:'Jam',data:jamPerMakmal,backgroundColor:'#10b981',borderRadius:5}]
+    },
+    options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}
+  })
+
+  // Chart: Waktu puncak (hari)
+  destroyChart('chart-hari')
+  const hariCount=[0,0,0,0,0,0,0]
+  aktif.forEach(s=>{ const d=new Date(s.tarikh).getDay(); hariCount[d]++ })
+  chartInstances['chart-hari'] = new Chart(document.getElementById('chart-hari'),{
+    type:'bar',
+    data:{
+      labels:['Ahad','Isnin','Selasa','Rabu','Khamis','Jumaat','Sabtu'],
+      datasets:[{label:'Bilangan Sesi',data:hariCount,backgroundColor:hariCount.map((_,i)=>i===0||i===6?'#e5e7eb':'#8b5cf6'),borderRadius:5}]
+    },
+    options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}
+  })
+
+  // Chart: Pecahan kursus
+  destroyChart('chart-kursus')
+  const kursusCount={}
+  aktif.forEach(s=>{ kursusCount[s.kursus]=(kursusCount[s.kursus]||0)+1 })
+  const kursusEntries=Object.entries(kursusCount).sort((a,b)=>b[1]-a[1]).slice(0,8)
+  const palette=['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#84cc16']
+  chartInstances['chart-kursus'] = new Chart(document.getElementById('chart-kursus'),{
+    type:'doughnut',
+    data:{
+      labels:kursusEntries.map(([k])=>k),
+      datasets:[{data:kursusEntries.map(([,v])=>v),backgroundColor:palette,borderWidth:2}]
+    },
+    options:{responsive:true,plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12}}}}
+  })
+
+  // Table: Kadar penggunaan
+  // Anggap waktu operasi makmal = 8 jam/hari, 5 hari/minggu
+  // Kira berapa hari ada sesi per makmal dalam bulan terkini
+  const ymSet = [...new Set(sesis.map(s=>s.tarikh.substring(0,7)))].sort()
+  const tbl = document.getElementById('laporan-kadar-table')
+  tbl.innerHTML = mkTh(['Makmal','Jenis','Bilangan Sesi','Jumlah Jam','Purata Jam/Sesi','Pensyarah Berbeza'])
+    +'<tbody>'
+    +makmals.map(m=>{
+      const ms = aktif.filter(s=>s.makmal_id===m.id)
+      const totalS = ms.length
+      const totalJ = ms.reduce((a,s)=>a+(+s.jam||0),0)
+      const avgJ = totalS>0 ? Math.round(totalJ/totalS*10)/10 : 0
+      const unikP = new Set(ms.map(s=>s.pensyarah)).size
+      return `<tr>
+        <td><strong>${m.nama}</strong><div style="font-size:11px;color:#9ca3af">${m.kod}</div></td>
+        <td>${jenisBadge(m.jenis)}</td>
+        <td style="text-align:center;font-weight:600">${totalS}</td>
+        <td style="text-align:center;font-weight:600">${totalJ}j</td>
+        <td style="text-align:center">${avgJ}j</td>
+        <td style="text-align:center">${unikP}</td>
+      </tr>`}).join('')
+    +'</tbody>'
+}
+
+// ══════════════════════════════════════
+//  MAKMAL
+// ══════════════════════════════════════
+function renderMakmalGrid(){
+  const grid = document.getElementById('makmal-grid')
+  grid.innerHTML = makmals.map(m=>`
+    <div class="makmal-card">
+      <div class="makmal-card-top">
+        <div class="makmal-icon">${makmalIcon(m.jenis)}</div>
+        <div>
+          <div class="makmal-name">${m.nama}</div>
+          <div class="makmal-code">${m.kod}</div>
+        </div>
+      </div>
+      <div class="makmal-detail">📍 ${m.lokasi||'—'}</div>
+      <div class="makmal-detail">👥 Kapasiti: <strong>${m.kapasiti||'—'}</strong> orang</div>
+      <div class="makmal-detail">${jenisBadge(m.jenis)} &nbsp;${statusBadge(m.status)}</div>
+      ${m.catatan?`<div style="margin-top:8px;font-size:11px;color:#9ca3af;font-style:italic">${m.catatan}</div>`:''}
+      <div class="makmal-actions">
+        <button class="btn btn-secondary btn-sm" onclick="editMakmal(${m.id})" style="flex:1">✏️ Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteMakmal(${m.id})">🗑️</button>
+      </div>
+    </div>`).join('')
+}
+
+function openMakmalModal(id){
+  if(!id){
+    document.getElementById('modal-makmal-title').textContent='Tambah Makmal'
+    document.getElementById('makmal-id').value=''
+    document.getElementById('form-makmal').reset()
+  }
+  openModal('modal-makmal')
+}
+
+function editMakmal(id){
+  const m=makmals.find(x=>x.id===id)
+  if(!m) return
+  document.getElementById('modal-makmal-title').textContent='Kemaskini Makmal'
+  document.getElementById('makmal-id').value=m.id
+  document.getElementById('m-kod').value=m.kod
+  document.getElementById('m-nama').value=m.nama
+  document.getElementById('m-jenis').value=m.jenis
+  document.getElementById('m-kapasiti').value=m.kapasiti||''
+  document.getElementById('m-lokasi').value=m.lokasi||''
+  document.getElementById('m-status').value=m.status
+  document.getElementById('m-catatan').value=m.catatan||''
+  openModal('modal-makmal')
+}
+
+function saveMakmal(e){
+  e.preventDefault()
+  const id=document.getElementById('makmal-id').value
+  const obj={
+    kod: document.getElementById('m-kod').value.trim(),
+    nama: document.getElementById('m-nama').value.trim(),
+    jenis: document.getElementById('m-jenis').value,
+    kapasiti: +document.getElementById('m-kapasiti').value||0,
+    lokasi: document.getElementById('m-lokasi').value.trim(),
+    status: document.getElementById('m-status').value,
+    catatan: document.getElementById('m-catatan').value.trim(),
+  }
+  if(id){ const i=makmals.findIndex(x=>x.id===+id); if(i>-1){makmals[i]={...makmals[i],...obj}} }
+  else { makmals.push({id:uid(),...obj}) }
+  save('kkj_makmals',makmals)
+  closeModal('modal-makmal')
+  renderMakmalGrid()
+}
+
+function deleteMakmal(id){
+  if(sesis.some(s=>s.makmal_id===id)){
+    alert('Makmal ini mempunyai rekod sesi. Sila padam sesi berkaitan dahulu.')
+    return
+  }
+  if(!confirm('Padam makmal ini?')) return
+  makmals=makmals.filter(m=>m.id!==id)
+  save('kkj_makmals',makmals)
+  renderMakmalGrid()
+}
+
+// ══════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════
+function updateDate(){
+  const now=new Date()
+  const hari=['Ahad','Isnin','Selasa','Rabu','Khamis','Jumaat','Sabtu']
+  const bln=['Jan','Feb','Mac','Apr','Mei','Jun','Jul','Ogs','Sep','Okt','Nov','Dis']
+  document.getElementById('topbar-date').textContent=
+    `${hari[now.getDay()]}, ${now.getDate()} ${bln[now.getMonth()]} ${now.getFullYear()}`
+}
+
+updateDate()
+renderDashboard()
+
+// responsive menu button
+if(window.innerWidth<=768) document.getElementById('menu-btn').style.display='flex'
+window.addEventListener('resize',()=>{
+  document.getElementById('menu-btn').style.display=window.innerWidth<=768?'flex':'none'
+})
+</script>
+</body>
+</html>
